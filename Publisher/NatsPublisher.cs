@@ -61,12 +61,12 @@ namespace Nats_Test
             while (counter < StreamDetails.NUMBER_OF_TASKS)
             {
                 counter++;
+                TransportUnit dataToSend = new TransportUnit();
+                dataToSend.DatapointKey = counter.ToString();
                 Task.Run(async () =>
                 {
                     for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
                     {
-                        TransportUnit dataToSend = new TransportUnit();
-                        dataToSend.DatapointKey = this.DpKey;
                         dataToSend.DatapointValue = file;
                         dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                         var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture", ProtoHelper.SerializeCompressedToBytes(dataToSend));
@@ -118,13 +118,14 @@ namespace Nats_Test
             int counter = 0;
             while (counter < StreamDetails.NUMBER_OF_TASKS)
             {
+                counter++;
+                TransportUnit dataToSend = new TransportUnit();
+                dataToSend.DatapointKey = this.DpKey;
                 Task.Run(async () =>
                 {
                     int taskNo = counter++;
                     for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
                     {
-                        TransportUnit dataToSend = new TransportUnit();
-                        dataToSend.DatapointKey = this.DpKey;
                         dataToSend.DatapointValue = file;
                         dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                         var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture{taskNo}", ProtoHelper.SerializeCompressedToBytes(dataToSend));
