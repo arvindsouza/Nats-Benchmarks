@@ -47,10 +47,7 @@ namespace Nats_Test
         public void PublishToSingleSubject()
         {
             // NatsConnection nats = new NatsConnection();
-            NatsConnection nats = new NatsConnection();
             int delay = 100;
-            mJetstream = new NatsJSContext(nats);
-
 
 
             byte[] file = File.ReadAllBytes(mFilePath);
@@ -63,9 +60,9 @@ namespace Nats_Test
 
             while (counter < StreamDetails.NUMBER_OF_TASKS)
             {
+                counter++;
                 Task.Run(async () =>
                 {
-                    int taskNo = counter++;
                     for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
                     {
                         TransportUnit dataToSend = new TransportUnit();
@@ -73,7 +70,8 @@ namespace Nats_Test
                         dataToSend.DatapointValue = file;
                         dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                         var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture", ProtoHelper.SerializeCompressedToBytes(dataToSend));
-                        ack.EnsureSuccess(); Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
+                        ack.EnsureSuccess(); 
+                        Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
                         Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                     }
@@ -84,12 +82,7 @@ namespace Nats_Test
 
         public void PublishToSingleSubjectWithOneTask()
         {
-            // NatsConnection nats = new NatsConnection();
-            NatsConnection nats = new NatsConnection();
             int delay = 100;
-            mJetstream = new NatsJSContext(nats);
-
-
 
             byte[] file = File.ReadAllBytes(mFilePath);
 
