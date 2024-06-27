@@ -118,12 +118,11 @@ namespace Nats_Test
             int counter = 0;
             while (counter < StreamDetails.NUMBER_OF_TASKS)
             {
-                counter++;
                 TransportUnit dataToSend = new TransportUnit();
                 dataToSend.DatapointKey = this.DpKey;
+                int taskNo = counter++;
                 Task.Run(async () =>
                 {
-                    int taskNo = counter++;
                     for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
                     {
                         dataToSend.DatapointValue = file;
