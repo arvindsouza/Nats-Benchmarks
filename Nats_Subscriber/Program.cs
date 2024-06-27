@@ -24,6 +24,13 @@ if (x.Key == ConsoleKey.D2)
     subscriber.SubscribeMultipleConsumersOneSubject();
 
 }
+else
+if (x.Key == ConsoleKey.D3)
+{
+    subscriber.SubscribeMultipleConsumersManySubject();
+
+}
+
 
 Console.WriteLine("\n Subscribed");
 Console.ReadKey();

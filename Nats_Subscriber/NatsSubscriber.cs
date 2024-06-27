@@ -145,5 +145,31 @@ namespace Nats_Subscriber
             }
             //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
         }
+
+        public async void SubscribeMultipleConsumersManySubject()
+        {
+            for (int i = 0; i < StreamDetails.NUMBER_OF_TASKS; i++)
+            {
+                var consumer = await mStream.CreateOrUpdateConsumerAsync(new ConsumerConfig($"processor-{i + 1}") { FilterSubject = $"{StreamDetails.SUBJECT_NAME}.picture{i}" });
+
+                Task.Run(async () =>
+                {
+                    int counter = 0;
+                    Console.WriteLine($"Created consumer {consumer.Info.Name}");
+
+                    await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxBytes = 400000000 }))
+                    {
+                        this.MessageQueue.Enqueue(msg);
+                        Console.WriteLine($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
+                        this.mMainThreadEvent.Set();
+                        await msg.AckAsync();
+
+
+                        // Console.WriteLine($"{x++}");
+                    }
+                });
+            }
+            //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
+        }
     }
 }
