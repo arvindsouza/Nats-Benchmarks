@@ -46,7 +46,7 @@ namespace Nats_Manager
             mStream = await mJetstream.CreateStreamAsync(new StreamConfig(StreamDetails.STREAM_NAME, new[] { $"{StreamDetails.SUBJECT_NAME}.>" })
             {
                 Retention = StreamConfigRetention.Interest,
-                MaxBytes = 400000000,
+                MaxBytes = StreamDetails.STREAM_SIZE_LIMIT,
                 Discard = StreamConfigDiscard.Old
             });
         }
@@ -56,7 +56,7 @@ namespace Nats_Manager
             mStream = await mJetstream.CreateStreamAsync(new StreamConfig(StreamDetails.STREAM_NAME, new[] { $"{StreamDetails.SUBJECT_NAME}.>" })
             {
                 Retention = StreamConfigRetention.Workqueue,
-                MaxBytes = 400000000,
+                MaxBytes = StreamDetails.STREAM_SIZE_LIMIT,
                 Discard = StreamConfigDiscard.Old
             });
         }

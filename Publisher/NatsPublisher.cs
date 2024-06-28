@@ -71,8 +71,8 @@ namespace Nats_Test
                         dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                         var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture", ProtoHelper.SerializeCompressedToBytes(dataToSend));
                         ack.EnsureSuccess(); 
-                        Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
-                        Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
+                      //  Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
+                    //    Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                     }
                 });
@@ -99,12 +99,13 @@ namespace Nats_Test
                 for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
                 {
                     TransportUnit dataToSend = new TransportUnit();
-                    dataToSend.DatapointKey = this.DpKey;
+                    dataToSend.DatapointKey = i.ToString();
                     dataToSend.DatapointValue = file;
                     dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                     var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture", ProtoHelper.SerializeCompressedToBytes(dataToSend));
-                    ack.EnsureSuccess(); Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
-                    Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
+                    ack.EnsureSuccess(); 
+                    Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
+                //    Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                 }
             });
@@ -128,8 +129,9 @@ namespace Nats_Test
                         dataToSend.DatapointValue = file;
                         dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                         var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture{taskNo}", ProtoHelper.SerializeCompressedToBytes(dataToSend));
-                        ack.EnsureSuccess(); Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
-                        Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
+                        ack.EnsureSuccess(); 
+                      //  Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
+                      //  Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                     }
                 });
