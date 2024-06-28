@@ -130,7 +130,7 @@ namespace Nats_Test
                         dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                         var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture{taskNo}", ProtoHelper.SerializeCompressedToBytes(dataToSend));
                         ack.EnsureSuccess(); 
-                        Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
+                        Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}, SubjectName {StreamDetails.SUBJECT_NAME}.picture{taskNo}");
                       //  Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                     }
