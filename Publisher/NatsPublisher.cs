@@ -109,7 +109,10 @@ namespace Nats_Test
 
             Task.Run(async () =>
             {
-                await using NatsConnection nats = new NatsConnection();
+                await using NatsConnection nats = new NatsConnection(new NatsOpts
+                {
+                    SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
+                });
                 var mJetstream = new NatsJSContext(nats);
                 int taskNo = counter++;
                 for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
@@ -139,7 +142,10 @@ namespace Nats_Test
                 int taskNo = counter++;
                 Task.Run(async () =>
                 {
-                    await using NatsConnection nats = new NatsConnection();
+                    await using NatsConnection nats = new NatsConnection(new NatsOpts
+                    {
+                        SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
+                    });
                     var mJetstream = new NatsJSContext(nats);
                     try
                     {
