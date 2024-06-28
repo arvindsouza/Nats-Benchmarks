@@ -81,16 +81,17 @@ namespace Nats_Subscriber
                     //    Console.WriteLine("Null data");
                     //}
 
-                    if (dequeuedMessage.Message.Data != null)
+                    if (dequeuedMessage != null && dequeuedMessage.Message.Data != null)
                     {
                         TransportUnit message = ProtoHelper.DeserializeDecompressFromBytes(dequeuedMessage.Message.Data);
                         SubscriberLogger.Information($"Deserialized message {message.DatapointKey} from consumer {dequeuedMessage.ConsumerName}");
 
                         counter++;
-                        if(counter == StreamDetails.NUMBER_OF_TASKS * StreamDetails.TOTAL_MESSAGES_PER_TASK)
+                        if(counter >= StreamDetails.NUMBER_OF_TASKS * StreamDetails.TOTAL_MESSAGES_PER_TASK)
                         {
                              st.Stop();
                             SubscriberLogger.Information($"Processed all messages {counter} in {st.ElapsedMilliseconds}");
+                            Console.WriteLine($"Processed all messages {counter} in {st.ElapsedMilliseconds}");
 
                         }
                     }
@@ -134,14 +135,22 @@ namespace Nats_Subscriber
 
         public async void SubscribeMultipleConsumersOneSubject()
         {
+            List<INatsJSConsumer> consumers = new List<INatsJSConsumer>();
+
             for(int i=0;i<StreamDetails.NUMBER_OF_TASKS;i++)
             {
-                var consumer = await mStream.CreateOrUpdateConsumerAsync(new ConsumerConfig($"processor-{i+1}"));
+                consumers.Add( await mStream.CreateOrUpdateConsumerAsync(new ConsumerConfig($"processor-{i + 1}") { 
+                AckPolicy = ConsumerConfigAckPolicy.Explicit
+                }));
+                SubscriberLogger.Information($"Created consumer {consumers[i].Info.Name}");
+
+            }
+
+            foreach (INatsJSConsumer consumer in consumers) {
 
                 Task.Run(async () =>
                 {
                     int counter = 0;
-                    SubscriberLogger.Information($"Created consumer {consumer.Info.Name}");
                     string consumerName = consumer.Info.Name;
                     await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxBytes = 400000000 }))
                     {
@@ -152,7 +161,7 @@ namespace Nats_Subscriber
                         receptacle.Message = msg;
 
                         this.MessageQueue.Enqueue(receptacle);
-                       // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
+                        // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
                         this.mMainThreadEvent.Set();
 
 
@@ -165,25 +174,38 @@ namespace Nats_Subscriber
 
         public async void SubscribeMultipleConsumersManySubject()
         {
+
+            List<INatsJSConsumer> consumers = new List<INatsJSConsumer>();
+
             for (int i = 0; i < StreamDetails.NUMBER_OF_TASKS; i++)
             {
-                var consumer = await mStream.CreateOrUpdateConsumerAsync(new ConsumerConfig($"processor-{i + 1}") { FilterSubject = $"{StreamDetails.SUBJECT_NAME}.picture{i}" });
+                consumers.Add(await mStream.CreateOrUpdateConsumerAsync(new ConsumerConfig($"processor-{i + 1}")
+                {
+                    FilterSubject = $"{StreamDetails.SUBJECT_NAME}.picture{i}",
+                    AckPolicy = ConsumerConfigAckPolicy.Explicit
+                }));
+                SubscriberLogger.Information($"Created consumer {consumers[i].Info.Name}");
+
+            }
+
+            foreach (INatsJSConsumer consumer in consumers)
+            {
 
                 Task.Run(async () =>
                 {
                     int counter = 0;
-                    Console.WriteLine($"Created consumer {consumer.Info.Name}");
-
+                    string consumerName = consumer.Info.Name;
                     await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxBytes = 400000000 }))
                     {
+                        await msg.AckAsync();
+
                         Receptacle receptacle = new Receptacle();
-                        receptacle.ConsumerName = consumer.Info.Name;
+                        receptacle.ConsumerName = consumerName;
                         receptacle.Message = msg;
 
                         this.MessageQueue.Enqueue(receptacle);
-                        Console.WriteLine($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
+                        // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
                         this.mMainThreadEvent.Set();
-                        await msg.AckAsync();
 
 
                         // Console.WriteLine($"{x++}");
