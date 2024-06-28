@@ -34,3 +34,5 @@ if (x.Key == ConsoleKey.D3)
 
 Console.WriteLine("\n Subscribed");
 Console.ReadKey();
+
+//subscriber.Dispose();

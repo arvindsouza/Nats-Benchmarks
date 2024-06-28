@@ -4,6 +4,8 @@ using Nats_Test;
 
 Console.WriteLine("Hello, World! I am Publisher");
 
+NatsPublisher publisher = new NatsPublisher();
+
 Console.WriteLine("Select Publish strategy:" +
     "\n 1 = Publish to single subject" +
     "\n 2 = publish to separate subjects" +
@@ -11,7 +13,7 @@ Console.WriteLine("Select Publish strategy:" +
 
 ConsoleKeyInfo x = Console.ReadKey();
 
-NatsPublisher publisher = new NatsPublisher();
+
 if (x.Key == ConsoleKey.D1)
 {
     publisher.PublishToSingleSubject();
