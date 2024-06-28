@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using Commons;
 using Commons.BusinessModels;
@@ -19,33 +21,34 @@ namespace Nats_Test
 
         public string DpKey { get; set; } = "1";
 
-        INatsJSStream mStream;
-        NatsJSContext mJetstream;
+        // INatsJSStream mStream;
+        // NatsJSContext mJetstream;
         string mFilePath = "pictures\\group.jpg";
         int mNoOfTasks = 8;
 
 
         public NatsPublisher()
         {
-            this.GetStream();
+            //this.GetStream();
         }
 
-        public async void GetStream()
-        {
-            try
-            {
-                NatsConnection nats = new NatsConnection();
-                this.mJetstream = new NatsJSContext(nats);
-                mStream = await mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME);
-            }
-            catch (Exception ex)
-            {
+        // public async void GetStream()
+        // {
+        //     try
+        //     {
+        //         NatsConnection nats = new NatsConnection();
+        //         this.mJetstream = new NatsJSContext(nats);
+        //         mStream = await mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME);
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //
+        //     }
+        // }
 
-            }
-        }
-
-        public void PublishToSingleSubject()
+        public async Task PublishToSingleSubject()
         {
+            var stopwatch = Stopwatch.StartNew();
             // NatsConnection nats = new NatsConnection();
             int delay = 100;
 
@@ -58,26 +61,37 @@ namespace Nats_Test
 
             int counter = 0;
 
+            var tasks = new List<Task>();
             while (counter < StreamDetails.NUMBER_OF_TASKS)
             {
                 counter++;
-                TransportUnit dataToSend = new TransportUnit();
-                dataToSend.DatapointKey = counter.ToString();
-                Task.Run(async () =>
+                Console.WriteLine($"task {counter}");
+                tasks.Add(Task.Run(async () =>
                 {
+                    Console.WriteLine($"start");
+                    await using NatsConnection nats = new NatsConnection(new NatsOpts
+                    {
+                        SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
+                    });
+                    var mJetstream = new NatsJSContext(nats);
+                    TransportUnit dataToSend = new TransportUnit();
+                    dataToSend.DatapointKey = counter.ToString();
                     for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
                     {
                         dataToSend.DatapointValue = file;
                         dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                         var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture", ProtoHelper.SerializeCompressedToBytes(dataToSend));
                         ack.EnsureSuccess(); 
-                      //  Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
-                    //    Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
+                        //  Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
+                        //    Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                     }
-                });
+                    Console.WriteLine($"end");
+                }));
             }
 
+            await Task.WhenAll(tasks);
+            Console.WriteLine($"all done {stopwatch.Elapsed}");
         }
 
         public void PublishToSingleSubjectWithOneTask()
@@ -95,6 +109,8 @@ namespace Nats_Test
 
             Task.Run(async () =>
             {
+                await using NatsConnection nats = new NatsConnection();
+                var mJetstream = new NatsJSContext(nats);
                 int taskNo = counter++;
                 for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
                 {
@@ -123,6 +139,8 @@ namespace Nats_Test
                 int taskNo = counter++;
                 Task.Run(async () =>
                 {
+                    await using NatsConnection nats = new NatsConnection();
+                    var mJetstream = new NatsJSContext(nats);
                     try
                     {
                         for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)

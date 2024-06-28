@@ -17,6 +17,7 @@ using NATS.Client.JetStream;
 using Serilog;
 using Serilog.Core;
 using System.Diagnostics.Metrics;
+using System.Threading.Channels;
 
 namespace Nats_Subscriber
 {
@@ -30,7 +31,9 @@ namespace Nats_Subscriber
        // List<INatsJSConsumer> mConsumers = new List<INatsJSConsumer>();
 
         // Logger SubscriberLogger = new LoggerConfiguration().WriteTo.File("Subscriber.log").CreateLogger();
-        Logger SubscriberLogger = new LoggerConfiguration().WriteTo.Console().WriteTo.File("Subscriber.log").CreateLogger();
+        Logger SubscriberLogger = new LoggerConfiguration()
+            // .WriteTo.Console()
+            .WriteTo.File("Subscriber.log").CreateLogger();
 
         static void NatsReceiveImageEventHandler(object? sender, HandledEventArgs args)
         {
@@ -48,7 +51,10 @@ namespace Nats_Subscriber
         {
             try
             {
-                NatsConnection nats = new NatsConnection();
+                NatsConnection nats = new NatsConnection(new NatsOpts
+                {
+                    SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
+                });
                 this.mJetstream = new NatsJSContext(nats);
                 mStream = await mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME);
                 SubscriberLogger.Information($"Initialized Subscriber");
