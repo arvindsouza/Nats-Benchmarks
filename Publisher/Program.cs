@@ -16,7 +16,7 @@ ConsoleKeyInfo x = Console.ReadKey();
 
 if (x.Key == ConsoleKey.D1)
 {
-    publisher.PublishToSingleSubject();
+    await publisher.PublishToSingleSubject();
 }
 if (x.Key == ConsoleKey.D2)
 {
@@ -29,4 +29,4 @@ if (x.Key == ConsoleKey.D3)
 
 
 
-Console.ReadKey();
+// Console.ReadKey();
