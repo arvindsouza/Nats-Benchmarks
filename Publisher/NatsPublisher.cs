@@ -13,6 +13,8 @@ using NATS.Client;
 using NATS.Client.Core;
 using NATS.Client.JetStream;
 using NATS.Client.JetStream.Models;
+using Serilog;
+using Serilog.Core;
 
 namespace Nats_Test
 {
@@ -26,25 +28,14 @@ namespace Nats_Test
         string mFilePath = "pictures\\group.jpg";
         int mNoOfTasks = 8;
 
+        Logger PublisherLog = new LoggerConfiguration()
+             .WriteTo.Console()
+            .WriteTo.File("logs\\PublisherLog.log").CreateLogger();
 
         public NatsPublisher()
         {
             //this.GetStream();
         }
-
-        // public async void GetStream()
-        // {
-        //     try
-        //     {
-        //         NatsConnection nats = new NatsConnection();
-        //         this.mJetstream = new NatsJSContext(nats);
-        //         mStream = await mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME);
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //
-        //     }
-        // }
 
         public async Task PublishToSingleSubject()
         {
@@ -65,10 +56,10 @@ namespace Nats_Test
             while (counter < StreamDetails.NUMBER_OF_TASKS)
             {
                 counter++;
-                Console.WriteLine($"task {counter}");
+                PublisherLog.Information($"task {counter}");
                 tasks.Add(Task.Run(async () =>
                 {
-                    Console.WriteLine($"start");
+                    PublisherLog.Information($"start");
                     await using NatsConnection nats = new NatsConnection(new NatsOpts
                     {
                         SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
@@ -80,6 +71,11 @@ namespace Nats_Test
                     {
                         dataToSend.DatapointValue = file;
                         dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+
+                        byte[] serializedDaa = ProtoHelper.SerializeCompressedToBytes(dataToSend);
+
+                        PublisherLog.Information($"Serialized data length {serializedDaa.Length}");
+
                         var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture", ProtoHelper.SerializeCompressedToBytes(dataToSend));
                         ack.EnsureSuccess(); 
                         //  Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
@@ -91,7 +87,7 @@ namespace Nats_Test
             }
 
             await Task.WhenAll(tasks);
-            Console.WriteLine($"all done {stopwatch.Elapsed}");
+            PublisherLog.Information($"all done {stopwatch.Elapsed}");
         }
 
         public void PublishToSingleSubjectWithOneTask()
@@ -122,8 +118,8 @@ namespace Nats_Test
                     dataToSend.DatapointValue = file;
                     dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                     var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture", ProtoHelper.SerializeCompressedToBytes(dataToSend));
-                    ack.EnsureSuccess(); 
-                    Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
+                    ack.EnsureSuccess();
+                    PublisherLog.Information($"Published at {dataToSend.DatapointKey} total: {i}");
                 //    Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                 }
@@ -156,8 +152,8 @@ namespace Nats_Test
                             dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
                             var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture{taskNo}", ProtoHelper.SerializeCompressedToBytes(dataToSend));
                             ack.EnsureSuccess();
-                            
-                            Console.WriteLine($" {ack.IsSuccess()} Published at {dataToSend.DatapointKey} total: {i}, SubjectName {StreamDetails.SUBJECT_NAME}.picture{taskNo}");
+
+                            PublisherLog.Information($" {ack.IsSuccess()} Published at {dataToSend.DatapointKey} total: {i}, SubjectName {StreamDetails.SUBJECT_NAME}.picture{taskNo}");
                             //  Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                         }

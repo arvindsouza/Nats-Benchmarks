@@ -33,7 +33,7 @@ namespace Nats_Subscriber
         // Logger SubscriberLogger = new LoggerConfiguration().WriteTo.File("Subscriber.log").CreateLogger();
         Logger SubscriberLogger = new LoggerConfiguration()
              .WriteTo.Console()
-            .WriteTo.File("Subscriber.log").CreateLogger();
+            .WriteTo.File("logs\\SubscriberLog.log").CreateLogger();
 
         static void NatsReceiveImageEventHandler(object? sender, HandledEventArgs args)
         {
