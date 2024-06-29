@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace Nats_Manager
@@ -36,7 +37,11 @@ namespace Nats_Manager
 
         public Speaker()
         {
-            NatsConnection nats = new NatsConnection();
+            NatsConnection nats = new NatsConnection(new NatsOpts
+            {
+                SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
+                SerializerRegistry = new MyProtoBufSerializerRegistry()
+            });
             this.mJetstream = new NatsJSContext(nats);
             Instance = this;
         }

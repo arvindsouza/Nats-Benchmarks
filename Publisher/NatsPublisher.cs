@@ -63,23 +63,20 @@ namespace Nats_Test
                     await using NatsConnection nats = new NatsConnection(new NatsOpts
                     {
                         SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
+                        SerializerRegistry = new MyProtoBufSerializerRegistry()
                     });
                     var mJetstream = new NatsJSContext(nats);
-                    TransportUnit dataToSend = new TransportUnit();
+                    TransportUnit2 dataToSend = new TransportUnit2();
                     dataToSend.DatapointKey = counter.ToString();
                     for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
                     {
                         dataToSend.DatapointValue = file;
                         dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
 
-                        byte[] serializedDaa = ProtoHelper.SerializeCompressedToBytes(dataToSend);
-
-                        PublisherLog.Information($"Serialized data length {serializedDaa.Length}");
-
-                        var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture", ProtoHelper.SerializeCompressedToBytes(dataToSend));
-                        ack.EnsureSuccess(); 
+                        var ack = await mJetstream.PublishAsync<TransportUnit2>($"{StreamDetails.SUBJECT_NAME}.picture", dataToSend);
+                        ack.EnsureSuccess();
                         //  Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
-                        //    Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
+                        PublisherLog.Information($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                     }
                     Console.WriteLine($"end");

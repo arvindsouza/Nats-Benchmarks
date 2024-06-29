@@ -40,7 +40,7 @@ namespace Nats_Subscriber
             Console.WriteLine("Received");
         }
 
-        ConcurrentQueue<Receptacle> MessageQueue = new ConcurrentQueue<Receptacle>();
+        ConcurrentQueue<Receptacle<TransportUnit2>> MessageQueue = new ConcurrentQueue<Receptacle<TransportUnit2>>();
         public NatsSubscriber()
         {
             this.GetStream();
@@ -54,6 +54,7 @@ namespace Nats_Subscriber
                 NatsConnection nats = new NatsConnection(new NatsOpts
                 {
                     SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
+                    SerializerRegistry = new MyProtoBufSerializerRegistry()
                 });
                 this.mJetstream = new NatsJSContext(nats);
                 mStream = await mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME);
@@ -76,7 +77,7 @@ namespace Nats_Subscriber
                 st.Start();
                 while (true)
                 {
-                    Receptacle dequeuedMessage = new Receptacle();
+                    Receptacle<TransportUnit2> dequeuedMessage = new Receptacle<TransportUnit2>();
 
                     if (this.MessageQueue.Count == 0)
                         this.mMainThreadEvent.WaitOne();
@@ -91,7 +92,7 @@ namespace Nats_Subscriber
 
                     if (dequeuedMessage != null && dequeuedMessage.Message.Data != null)
                     {
-                        TransportUnit message = ProtoHelper.DeserializeDecompressFromBytes(dequeuedMessage.Message.Data);
+                        TransportUnit2 message = dequeuedMessage.Message.Data;
                         SubscriberLogger.Information($"Deserialized message {message.DatapointKey} from consumer {dequeuedMessage.ConsumerName}");
 
                         counter++;
@@ -125,12 +126,9 @@ namespace Nats_Subscriber
             //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
             var subscription = Task.Run(async () =>
             {
-                await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
+                await foreach (var msg in consumer.ConsumeAsync<TransportUnit2>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
                 {
-                    Receptacle receptacle = new Receptacle();
-                    receptacle.ConsumerName = consumer.Info.Name;
-                    receptacle.Message = msg;
-                    this.MessageQueue.Enqueue(receptacle);
+                    this.MessageQueue.Enqueue(this.GetMessage(consumer.Info.Name, msg));
                     SubscriberLogger.Information($"Enqueued, Total: {x++}");
                     this.mMainThreadEvent.Set();
                     await msg.AckAsync();
@@ -162,15 +160,11 @@ namespace Nats_Subscriber
                 {
                     int counter = 0;
                     string consumerName = consumer.Info.Name;
-                    await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
+                    await foreach (var msg in consumer.ConsumeAsync<TransportUnit2>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
                     {
                         await msg.AckAsync();
 
-                        Receptacle receptacle = new Receptacle();
-                        receptacle.ConsumerName = consumerName;
-                        receptacle.Message = msg;
-
-                        this.MessageQueue.Enqueue(receptacle);
+                        this.MessageQueue.Enqueue(this.GetMessage(consumerName, msg));
                         // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
                         this.mMainThreadEvent.Set();
 
@@ -204,15 +198,11 @@ namespace Nats_Subscriber
                 {
                     int counter = 0;
                     string consumerName = consumer.Info.Name;
-                    await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
+                    await foreach (var msg in consumer.ConsumeAsync<TransportUnit2>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
                     {
                         await msg.AckAsync();
 
-                        Receptacle receptacle = new Receptacle();
-                        receptacle.ConsumerName = consumerName;
-                        receptacle.Message = msg;
-
-                        this.MessageQueue.Enqueue(receptacle);
+                        this.MessageQueue.Enqueue(GetMessage(consumerName, msg));
                         // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
                         this.mMainThreadEvent.Set();
 
@@ -222,6 +212,17 @@ namespace Nats_Subscriber
                 });
             }
             //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
+        }
+
+        public Receptacle<TransportUnit2> GetMessage(string consumerName, object message)
+        {
+            Receptacle<TransportUnit2> result = new Receptacle<TransportUnit2>();
+
+            result.ConsumerName = consumerName;
+            result.Message = (NatsJSMsg<TransportUnit2>) message;
+
+
+            return result;
         }
     }
 }
