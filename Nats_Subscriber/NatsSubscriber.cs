@@ -182,7 +182,7 @@ namespace Nats_Subscriber
             {
                 int counter = 0;
                 string consumerName = consumer.Info.Name;
-                await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
+                await foreach (var msg in consumer.ConsumeAsync<TransportUnit2>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
                 {
                     await msg.AckAsync();
                     this.MessageQueue.Enqueue(GetMessage(consumerName, msg));
