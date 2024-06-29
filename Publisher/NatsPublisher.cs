@@ -29,7 +29,7 @@ namespace Nats_Test
         int mNoOfTasks = 8;
 
         Logger PublisherLog = new LoggerConfiguration()
-             .WriteTo.Console()
+            // .WriteTo.Console()
             .WriteTo.File("logs\\PublisherLog.log").CreateLogger();
 
         public NatsPublisher()
@@ -41,8 +41,6 @@ namespace Nats_Test
         {
             var stopwatch = Stopwatch.StartNew();
             // NatsConnection nats = new NatsConnection();
-            int delay = 100;
-
 
             byte[] file = File.ReadAllBytes(mFilePath);
 
@@ -77,9 +75,9 @@ namespace Nats_Test
                         PublisherLog.Information($"Serialized data length {serializedDaa.Length}");
 
                         var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture", ProtoHelper.SerializeCompressedToBytes(dataToSend));
-                        ack.EnsureSuccess(); 
+                        ack.EnsureSuccess();
                         //  Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
-                        //    Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
+                       // PublisherLog.Information($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                     }
                     Console.WriteLine($"end");
@@ -90,20 +88,18 @@ namespace Nats_Test
             PublisherLog.Information($"all done {stopwatch.Elapsed}");
         }
 
-        public void PublishToSingleSubjectWithOneTask()
+        public async void PublishToSingleSubjectWithOneTask()
         {
-            int delay = 100;
+            var stopwatch = Stopwatch.StartNew();
 
             byte[] file = File.ReadAllBytes(mFilePath);
 
             Console.WriteLine(file.Length);
-            //img.
-            //File.ReadAllBytes(img)
 
             int counter = 0;
 
-
-            Task.Run(async () =>
+            List<Task> tasks = new List<Task>();
+            tasks.Add(Task.Run(async () =>
             {
                 await using NatsConnection nats = new NatsConnection(new NatsOpts
                 {
@@ -123,20 +119,25 @@ namespace Nats_Test
                 //    Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
 
                 }
-            });
+            }));
+            await Task.WhenAll(tasks);
+            PublisherLog.Information($"all done {stopwatch.Elapsed}");
 
         }
 
-        public void PublishToMultipleSubject()
+        public async void PublishToMultipleSubject()
         {
             byte[] file = File.ReadAllBytes(mFilePath);
+            var stopwatch = Stopwatch.StartNew();
 
             int counter = 0;
+            List<Task> tasks = new List<Task>();
+
             while (counter < StreamDetails.NUMBER_OF_TASKS)
             {
                 TransportUnit dataToSend = new TransportUnit();
                 int taskNo = counter++;
-                Task.Run(async () =>
+                tasks.Add(Task.Run(async () =>
                 {
                     await using NatsConnection nats = new NatsConnection(new NatsOpts
                     {
@@ -159,8 +160,11 @@ namespace Nats_Test
                         }
                     }
                     catch (Exception ex) { Console.WriteLine(ex.ToString()); }
-                });
+                }));
             }
+
+            await Task.WhenAll(tasks);
+            PublisherLog.Information($"all done {stopwatch.Elapsed}");
 
         }
 

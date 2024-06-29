@@ -32,7 +32,7 @@ namespace Nats_Subscriber
 
         // Logger SubscriberLogger = new LoggerConfiguration().WriteTo.File("Subscriber.log").CreateLogger();
         Logger SubscriberLogger = new LoggerConfiguration()
-             .WriteTo.Console()
+           //  .WriteTo.Console()
             .WriteTo.File("logs\\SubscriberLog.log").CreateLogger();
 
         static void NatsReceiveImageEventHandler(object? sender, HandledEventArgs args)
@@ -82,12 +82,6 @@ namespace Nats_Subscriber
                         this.mMainThreadEvent.WaitOne();
 
                     this.MessageQueue.TryDequeue(out dequeuedMessage);
-                    //  Console.WriteLine($"Queue size: {this.MessageQueue.Count}");
-
-                    //if(dequeuedMessage.Data == null)
-                    //{
-                    //    Console.WriteLine("Null data");
-                    //}
 
                     if (dequeuedMessage != null && dequeuedMessage.Message.Data != null)
                     {
@@ -157,27 +151,7 @@ namespace Nats_Subscriber
 
             foreach (INatsJSConsumer consumer in consumers)
             {
-
-                Task.Run(async () =>
-                {
-                    int counter = 0;
-                    string consumerName = consumer.Info.Name;
-                    await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
-                    {
-                        await msg.AckAsync();
-
-                        Receptacle receptacle = new Receptacle();
-                        receptacle.ConsumerName = consumerName;
-                        receptacle.Message = msg;
-
-                        this.MessageQueue.Enqueue(receptacle);
-                        // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
-                        this.mMainThreadEvent.Set();
-
-
-                        // Console.WriteLine($"{x++}");
-                    }
-                });
+                this.CreateConsumerTask(consumer);
             }
             //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
         }
@@ -199,29 +173,33 @@ namespace Nats_Subscriber
 
             foreach (INatsJSConsumer consumer in consumers)
             {
-
-                Task.Run(async () =>
-                {
-                    int counter = 0;
-                    string consumerName = consumer.Info.Name;
-                    await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
-                    {
-                        await msg.AckAsync();
-
-                        Receptacle receptacle = new Receptacle();
-                        receptacle.ConsumerName = consumerName;
-                        receptacle.Message = msg;
-
-                        this.MessageQueue.Enqueue(receptacle);
-                        // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
-                        this.mMainThreadEvent.Set();
-
-
-                        // Console.WriteLine($"{x++}");
-                    }
-                });
+                this.CreateConsumerTask(consumer);
             }
             //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
+        }
+
+        public void CreateConsumerTask(INatsJSConsumer consumer)
+        {
+            Task.Run(async () =>
+            {
+                int counter = 0;
+                string consumerName = consumer.Info.Name;
+                await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
+                {
+                    await msg.AckAsync();
+
+                    Receptacle receptacle = new Receptacle();
+                    receptacle.ConsumerName = consumerName;
+                    receptacle.Message = msg;
+
+                    this.MessageQueue.Enqueue(receptacle);
+                    // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
+                    this.mMainThreadEvent.Set();
+
+
+                    // Console.WriteLine($"{x++}");
+                }
+            });
         }
     }
 }
