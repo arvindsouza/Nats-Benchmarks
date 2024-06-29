@@ -32,7 +32,7 @@ namespace Nats_Subscriber
 
         // Logger SubscriberLogger = new LoggerConfiguration().WriteTo.File("Subscriber.log").CreateLogger();
         Logger SubscriberLogger = new LoggerConfiguration()
-            // .WriteTo.Console()
+             .WriteTo.Console()
             .WriteTo.File("Subscriber.log").CreateLogger();
 
         static void NatsReceiveImageEventHandler(object? sender, HandledEventArgs args)
@@ -125,7 +125,7 @@ namespace Nats_Subscriber
             //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
             var subscription = Task.Run(async () =>
             {
-                await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxBytes = 400000000 }))
+                await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
                 {
                     Receptacle receptacle = new Receptacle();
                     receptacle.ConsumerName = consumer.Info.Name;
@@ -162,7 +162,7 @@ namespace Nats_Subscriber
                 {
                     int counter = 0;
                     string consumerName = consumer.Info.Name;
-                    await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxBytes = 400000000 }))
+                    await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
                     {
                         await msg.AckAsync();
 
@@ -192,7 +192,6 @@ namespace Nats_Subscriber
                 {
                     FilterSubject = $"{StreamDetails.SUBJECT_NAME}.picture{i}",
                     AckPolicy = ConsumerConfigAckPolicy.Explicit,
-                    MaxExpires = TimeSpan.FromSeconds(60)
                 }));
                 SubscriberLogger.Information($"Created consumer {consumers[i].Info.Name}");
                 
@@ -205,7 +204,7 @@ namespace Nats_Subscriber
                 {
                     int counter = 0;
                     string consumerName = consumer.Info.Name;
-                    await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxBytes = 400000000 }))
+                    await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
                     {
                         await msg.AckAsync();
 
