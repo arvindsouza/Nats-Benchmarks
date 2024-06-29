@@ -28,11 +28,11 @@ namespace Nats_Subscriber
         AutoResetEvent mMainThreadEvent = new AutoResetEvent(false);
         INatsJSStream mStream;
         NatsJSContext mJetstream;
-       // List<INatsJSConsumer> mConsumers = new List<INatsJSConsumer>();
+        // List<INatsJSConsumer> mConsumers = new List<INatsJSConsumer>();
 
         // Logger SubscriberLogger = new LoggerConfiguration().WriteTo.File("Subscriber.log").CreateLogger();
         Logger SubscriberLogger = new LoggerConfiguration()
-           //  .WriteTo.Console()
+            //  .WriteTo.Console()
             .WriteTo.File("logs\\SubscriberLog.log").CreateLogger();
 
         static void NatsReceiveImageEventHandler(object? sender, HandledEventArgs args)
@@ -166,7 +166,7 @@ namespace Nats_Subscriber
                     AckPolicy = ConsumerConfigAckPolicy.Explicit,
                 }));
                 SubscriberLogger.Information($"Created consumer {consumers[i].Info.Name}");
-                
+
             }
 
             foreach (INatsJSConsumer consumer in consumers)
@@ -190,13 +190,11 @@ namespace Nats_Subscriber
                     this.mMainThreadEvent.Set();
 
 
-                        // Console.WriteLine($"{x++}");
-                    }
-                });
-            }
-            //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
+                    // Console.WriteLine($"{x++}");
+                }
+            });
         }
-
+            //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
         public Receptacle<TransportUnit2> GetMessage(string consumerName, object message)
         {
             Receptacle<TransportUnit2> result = new Receptacle<TransportUnit2>();
