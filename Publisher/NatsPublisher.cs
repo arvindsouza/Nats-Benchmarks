@@ -55,30 +55,7 @@ namespace Nats_Test
             {
                 counter++;
                 PublisherLog.Information($"task {counter}");
-                tasks.Add(Task.Run(async () =>
-                {
-                    PublisherLog.Information($"start");
-                    await using NatsConnection nats = new NatsConnection(new NatsOpts
-                    {
-                        SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
-                        SerializerRegistry = new MyProtoBufSerializerRegistry()
-                    });
-                    var mJetstream = new NatsJSContext(nats);
-                    TransportUnit2 dataToSend = new TransportUnit2();
-                    dataToSend.DatapointKey = counter.ToString();
-                    for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
-                    {
-                        dataToSend.DatapointValue = file;
-                        dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
-
-                        var ack = await mJetstream.PublishAsync<TransportUnit2>($"{StreamDetails.SUBJECT_NAME}.picture", dataToSend);
-                        ack.EnsureSuccess();
-                        //  Console.WriteLine($"Published at {dataToSend.DatapointKey} total: {i}");
-                       // PublisherLog.Information($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
-
-                    }
-                    Console.WriteLine($"end");
-                }));
+                tasks = this.CreatePublishTasks(file, counter);
             }
 
             await Task.WhenAll(tasks);
@@ -96,27 +73,7 @@ namespace Nats_Test
             int counter = 0;
 
             List<Task> tasks = new List<Task>();
-            tasks.Add(Task.Run(async () =>
-            {
-                await using NatsConnection nats = new NatsConnection(new NatsOpts
-                {
-                    SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
-                });
-                var mJetstream = new NatsJSContext(nats);
-                int taskNo = counter++;
-                for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
-                {
-                    TransportUnit dataToSend = new TransportUnit();
-                    dataToSend.DatapointKey = i.ToString();
-                    dataToSend.DatapointValue = file;
-                    dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
-                    var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture", ProtoHelper.SerializeCompressedToBytes(dataToSend));
-                    ack.EnsureSuccess();
-                    PublisherLog.Information($"Published at {dataToSend.DatapointKey} total: {i}");
-                //    Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
-
-                }
-            }));
+            tasks = this.CreatePublishTasks(file);
             await Task.WhenAll(tasks);
             PublisherLog.Information($"all done {stopwatch.Elapsed}");
 
@@ -132,32 +89,8 @@ namespace Nats_Test
 
             while (counter < StreamDetails.NUMBER_OF_TASKS)
             {
-                TransportUnit dataToSend = new TransportUnit();
                 int taskNo = counter++;
-                tasks.Add(Task.Run(async () =>
-                {
-                    await using NatsConnection nats = new NatsConnection(new NatsOpts
-                    {
-                        SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
-                    });
-                    var mJetstream = new NatsJSContext(nats);
-                    try
-                    {
-                        for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
-                        {
-                            dataToSend.DatapointKey = i.ToString();
-                            dataToSend.DatapointValue = file;
-                            dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
-                            var ack = await mJetstream.PublishAsync<byte[]>($"{StreamDetails.SUBJECT_NAME}.picture{taskNo}", ProtoHelper.SerializeCompressedToBytes(dataToSend));
-                            ack.EnsureSuccess();
-
-                            PublisherLog.Information($" {ack.IsSuccess()} Published at {dataToSend.DatapointKey} total: {i}, SubjectName {StreamDetails.SUBJECT_NAME}.picture{taskNo}");
-                            //  Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
-
-                        }
-                    }
-                    catch (Exception ex) { Console.WriteLine(ex.ToString()); }
-                }));
+                tasks = this.CreatePublishTasks(file, taskNo);
             }
 
             await Task.WhenAll(tasks);
@@ -165,6 +98,39 @@ namespace Nats_Test
 
         }
 
+        public List<Task> CreatePublishTasks(byte[] fileData, int taskNo = 0)
+        {
+            List<Task> tasks = new List<Task>();
 
+            tasks.Add(Task.Run(async () =>
+            {
+                await using NatsConnection nats = new NatsConnection(new NatsOpts
+                {
+                    SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
+                    SerializerRegistry = new MyProtoBufSerializerRegistry(),
+                });
+                var mJetstream = new NatsJSContext(nats);
+                try
+                {
+                    for (int i = 0; i < StreamDetails.TOTAL_MESSAGES_PER_TASK; i++)
+                    {
+                        TransportUnit2 dataToSend = new TransportUnit2();
+                        dataToSend.DatapointKey = i.ToString();
+                        dataToSend.DatapointValue = fileData;
+                        dataToSend.DatapointName = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+                        var ack = await mJetstream.PublishAsync<TransportUnit2>($"{StreamDetails.SUBJECT_NAME}.picture{taskNo}", dataToSend);
+                        ack.EnsureSuccess();
+
+                        PublisherLog.Information($" {ack.IsSuccess()} Published at {dataToSend.DatapointKey} total: {i}, SubjectName {StreamDetails.SUBJECT_NAME}.picture{taskNo}");
+                        //  Console.WriteLine($"Stream size {mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME).Result.Info.State.Bytes}");
+
+                    }
+                    Console.WriteLine($"end");
+                }
+                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+            }));
+
+            return tasks;
+        }
     }
 }
