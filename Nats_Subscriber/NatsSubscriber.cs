@@ -32,7 +32,7 @@ namespace Nats_Subscriber
 
         // Logger SubscriberLogger = new LoggerConfiguration().WriteTo.File("Subscriber.log").CreateLogger();
         Logger SubscriberLogger = new LoggerConfiguration()
-             .WriteTo.Console()
+           //  .WriteTo.Console()
             .WriteTo.File("logs\\SubscriberLog.log").CreateLogger();
 
         static void NatsReceiveImageEventHandler(object? sender, HandledEventArgs args)
@@ -83,12 +83,6 @@ namespace Nats_Subscriber
                         this.mMainThreadEvent.WaitOne();
 
                     this.MessageQueue.TryDequeue(out dequeuedMessage);
-                    //  Console.WriteLine($"Queue size: {this.MessageQueue.Count}");
-
-                    //if(dequeuedMessage.Data == null)
-                    //{
-                    //    Console.WriteLine("Null data");
-                    //}
 
                     if (dequeuedMessage != null && dequeuedMessage.Message.Data != null)
                     {
@@ -155,23 +149,7 @@ namespace Nats_Subscriber
 
             foreach (INatsJSConsumer consumer in consumers)
             {
-
-                Task.Run(async () =>
-                {
-                    int counter = 0;
-                    string consumerName = consumer.Info.Name;
-                    await foreach (var msg in consumer.ConsumeAsync<TransportUnit2>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
-                    {
-                        await msg.AckAsync();
-
-                        this.MessageQueue.Enqueue(this.GetMessage(consumerName, msg));
-                        // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
-                        this.mMainThreadEvent.Set();
-
-
-                        // Console.WriteLine($"{x++}");
-                    }
-                });
+                this.CreateConsumerTask(consumer);
             }
             //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
         }
@@ -193,18 +171,23 @@ namespace Nats_Subscriber
 
             foreach (INatsJSConsumer consumer in consumers)
             {
+                this.CreateConsumerTask(consumer);
+            }
+            //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
+        }
 
-                Task.Run(async () =>
+        public void CreateConsumerTask(INatsJSConsumer consumer)
+        {
+            Task.Run(async () =>
+            {
+                int counter = 0;
+                string consumerName = consumer.Info.Name;
+                await foreach (var msg in consumer.ConsumeAsync<byte[]>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
                 {
-                    int counter = 0;
-                    string consumerName = consumer.Info.Name;
-                    await foreach (var msg in consumer.ConsumeAsync<TransportUnit2>(opts: new NatsJSConsumeOpts { MaxMsgs = StreamDetails.MAX_CONSUMER_MESSAGES }))
-                    {
-                        await msg.AckAsync();
-
-                        this.MessageQueue.Enqueue(GetMessage(consumerName, msg));
-                        // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
-                        this.mMainThreadEvent.Set();
+                    await msg.AckAsync();
+                    this.MessageQueue.Enqueue(GetMessage(consumerName, msg));
+                    // SubscriberLogger.Information($"Enqueued, Total: {counter++} for consumer {consumer.Info.Name}");
+                    this.mMainThreadEvent.Set();
 
 
                         // Console.WriteLine($"{x++}");
