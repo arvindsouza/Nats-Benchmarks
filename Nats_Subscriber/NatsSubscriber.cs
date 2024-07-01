@@ -181,7 +181,7 @@ namespace Nats_Subscriber
                 AckPolicy = ConsumerConfigAckPolicy.Explicit,
             };
 
-            if (string.IsNullOrEmpty(subject))
+            if (!string.IsNullOrEmpty(subject))
             {
                 config.FilterSubject = subject;
             }
