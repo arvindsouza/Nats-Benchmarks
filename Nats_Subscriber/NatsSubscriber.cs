@@ -32,7 +32,7 @@ namespace Nats_Subscriber
 
         // Logger SubscriberLogger = new LoggerConfiguration().WriteTo.File("Subscriber.log").CreateLogger();
         Logger SubscriberLogger = new LoggerConfiguration()
-            //  .WriteTo.Console()
+              .WriteTo.Console()
             .WriteTo.File("logs\\SubscriberLog.log").CreateLogger();
 
         static void NatsReceiveImageEventHandler(object? sender, HandledEventArgs args)
@@ -90,13 +90,13 @@ namespace Nats_Subscriber
                         SubscriberLogger.Information($"Deserialized message {message.DatapointKey} from consumer {dequeuedMessage.ConsumerName}");
 
                         counter++;
-                        if (counter >= StreamDetails.NUMBER_OF_TASKS * StreamDetails.TOTAL_MESSAGES_PER_TASK)
-                        {
-                            st.Stop();
-                            SubscriberLogger.Information($"Processed all messages {counter} in {st.ElapsedMilliseconds}");
-                            Console.WriteLine($"Processed all messages {counter} in {st.ElapsedMilliseconds}");
+                        //if (counter >= StreamDetails.NUMBER_OF_TASKS * StreamDetails.TOTAL_MESSAGES_PER_TASK)
+                        //{
+                        //    st.Stop();
+                        //    SubscriberLogger.Information($"Processed all messages {counter} in {st.ElapsedMilliseconds}");
+                        //    Console.WriteLine($"Processed all messages {counter} in {st.ElapsedMilliseconds}");
 
-                        }
+                        //}
                     }
                 }
 
@@ -139,10 +139,7 @@ namespace Nats_Subscriber
 
             for (int i = 0; i < StreamDetails.NUMBER_OF_TASKS; i++)
             {
-                consumers.Add(await mStream.CreateOrUpdateConsumerAsync(new ConsumerConfig($"processor-{i + 1}")
-                {
-                    AckPolicy = ConsumerConfigAckPolicy.Explicit
-                }));
+                consumers.Add(await this.CreateConsumer(i, string.Empty));
                 SubscriberLogger.Information($"Created consumer {consumers[i].Info.Name}");
 
             }
@@ -160,11 +157,7 @@ namespace Nats_Subscriber
 
             for (int i = 0; i < StreamDetails.NUMBER_OF_TASKS; i++)
             {
-                consumers.Add(await mStream.CreateOrUpdateConsumerAsync(new ConsumerConfig($"processor-{i + 1}")
-                {
-                    FilterSubject = $"{StreamDetails.SUBJECT_NAME}.picture{i}",
-                    AckPolicy = ConsumerConfigAckPolicy.Explicit,
-                }));
+                consumers.Add(await this.CreateConsumer(i, $"{StreamDetails.SUBJECT_NAME}.picture{i}"));
                 SubscriberLogger.Information($"Created consumer {consumers[i].Info.Name}");
 
             }
@@ -175,6 +168,39 @@ namespace Nats_Subscriber
             }
             //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
         }
+
+
+        public async Task<INatsJSConsumer> CreateConsumer(int i, string subject)
+        {
+
+            string consumerName = $"processor-{i}";
+            INatsJSConsumer consumer = null;
+
+            ConsumerConfig config = new ConsumerConfig(consumerName)
+            {
+                AckPolicy = ConsumerConfigAckPolicy.Explicit,
+            };
+
+            if (string.IsNullOrEmpty(subject))
+            {
+                config.FilterSubject = subject;
+            }
+
+            try
+            {
+                consumer = await mStream.GetConsumerAsync(consumerName);
+            }
+            catch (Exception ex)
+            {
+                SubscriberLogger.Error("Error getting consumer", ex);
+            }
+
+            if(consumer == null)
+            consumer = await mStream.CreateOrUpdateConsumerAsync(config);
+
+            return consumer;
+        }
+
 
         public void CreateConsumerTask(INatsJSConsumer consumer)
         {
@@ -194,13 +220,13 @@ namespace Nats_Subscriber
                 }
             });
         }
-            //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
+        //            var sub = nats.SubscribeAsync<byte[]>(subject: "picture");
         public Receptacle<TransportUnit2> GetMessage(string consumerName, object message)
         {
             Receptacle<TransportUnit2> result = new Receptacle<TransportUnit2>();
 
             result.ConsumerName = consumerName;
-            result.Message = (NatsJSMsg<TransportUnit2>) message;
+            result.Message = (NatsJSMsg<TransportUnit2>)message;
 
 
             return result;
