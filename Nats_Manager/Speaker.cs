@@ -66,6 +66,17 @@ namespace Nats_Manager
             });
         }
 
+        public async void CreateLimitsBasedStream()
+        {
+            mStream = await mJetstream.CreateStreamAsync(new StreamConfig(StreamDetails.STREAM_NAME, new[] { $"{StreamDetails.SUBJECT_NAME}.>" })
+            {
+                Retention = StreamConfigRetention.Limits,
+                MaxBytes = StreamDetails.STREAM_SIZE_LIMIT,
+                Discard = StreamConfigDiscard.Old,
+                MaxAge = TimeSpan.FromMinutes(StreamDetails.MAX_RETENTION_PERIOD_MINUTES)
+            });
+        }
+
         public void Dispose()
         {
             mStream.DeleteAsync();
