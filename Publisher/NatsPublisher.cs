@@ -108,6 +108,7 @@ namespace Nats_Test
                 {
                     SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
                     SerializerRegistry = new MyProtoBufSerializerRegistry(),
+                    Url = StreamDetails.NATS_SERVER_URL
                 });
                 var mJetstream = new NatsJSContext(nats);
                 try

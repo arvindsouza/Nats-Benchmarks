@@ -16,6 +16,6 @@ namespace Commons
         public static int MAX_CONSUMER_BYTES = 20000;
         public static int MAX_CONSUMER_MESSAGES = 10;
         public static int MAX_RETENTION_PERIOD_MINUTES = 10;
-
+        public static string NATS_SERVER_URL = "169.254.95.120:8111";
     }
 }

@@ -54,7 +54,8 @@ namespace Nats_Subscriber
                 NatsConnection nats = new NatsConnection(new NatsOpts
                 {
                     SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
-                    SerializerRegistry = new MyProtoBufSerializerRegistry()
+                    SerializerRegistry = new MyProtoBufSerializerRegistry(),
+                    Url = StreamDetails.NATS_SERVER_URL
                 });
                 this.mJetstream = new NatsJSContext(nats);
                 mStream = await mJetstream.GetStreamAsync(StreamDetails.STREAM_NAME);

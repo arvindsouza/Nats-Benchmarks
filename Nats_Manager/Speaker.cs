@@ -40,7 +40,8 @@ namespace Nats_Manager
             NatsConnection nats = new NatsConnection(new NatsOpts
             {
                 SubPendingChannelFullMode = BoundedChannelFullMode.Wait,
-                SerializerRegistry = new MyProtoBufSerializerRegistry()
+                SerializerRegistry = new MyProtoBufSerializerRegistry(),
+                Url = StreamDetails.NATS_SERVER_URL
             });
             this.mJetstream = new NatsJSContext(nats);
             Instance = this;
